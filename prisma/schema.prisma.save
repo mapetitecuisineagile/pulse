@@ -1,0 +1,363 @@
+rismagenerator clie  provider = "prisma-client-js"
+}generator client {
+  provider = "prisma-client-js"
+}
+
+model Team {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  trigram     String
+  color       String   @default("#2E75B6")
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  members     Member[]
+  sprints     Sprint[]
+}
+
+model Member {
+  id                String    @id @default(cuid())
+  team              Team      @relation(fields: [teamId], references: [id])
+  teamId            String
+  firstName         String
+  lastName          String
+  role              String
+  fte               Float     @default(1.0)
+  countsInCapacity  Boolean   @default(true)
+  status            String    @default("active")
+  activeFrom        DateTime  @default(now())
+  activeTo          DateTime?
+  absences          Absence[]
+}
+
+model Sprint {
+  id            String          @id @default(cuid())
+  team          Team            @relation(fields: [teamId], references: [id])
+  teamId        String
+  label         String
+  quarter       String
+  startDate     DateTime
+  endDate       DateTime
+  status        String          @default("planned")
+  sprintGoal    String?
+  capacityDays  Float?
+  pctBau        Float           @default(0.30)
+  teamMood      Int?
+  items         SprintItem[]
+  burndown      BurndownEntry[]
+  absences      Absence[]
+}
+
+model SprintItem {
+  id           String   @id @default(cuid())
+  sprint       Sprint   @relation(fields: [sprintId], references: [id])
+  sprintId     String
+  jiraKey      String?
+  title        String
+  type         String
+  scope        String
+  storyPoints  Int?
+  status       String   @default("todo")
+  isAdded      Boolean  @default(false)
+  isRemoved    Boolean  @default(false)
+  addedDay     Int?
+  createdAt    DateTime @default(now())
+}
+
+model BurndownEntry {
+  id          String   @id @default(cuid())
+  sprint      Sprint   @relation(fields: [sprintId], references: [id])
+  sprintId    String
+  dayNumber   Int
+  date        DateTime
+  remainingSp Int?
+  doneSp      Int?
+  addedSp     Int      @ id         String   @id @default(cuid())
+  member     Member   @relation(fields: [memberId], references: [id])
+  memberId   String
+  sprint     Sprint   @relation(fields: [sprintId], references: [id])
+  sprintId   String
+  type       String
+  daysCount  Float
+}generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Team {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  trigram     String
+  color       String   @default("#2E75B6")
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  members     Member[]
+  sprints     Sprint[]
+}
+
+model Member {
+  id                String    @id @default(cuid())
+  team              Team      @relation(fields: [teamId], references: [id])
+  teamId            String
+  firstName         String
+  lastName          String
+  role              String
+  fte               Float     @default(1.0)
+  countsInCapacity  Boolean   @default(true)
+  status            String    @default("active")
+  activeFrom        DateTime  @default(now())
+  activeTo          DateTime?
+  absences          Absence[]
+}
+
+model Sprint {
+  id            String          @id @default(cuid())
+  team          Team            @relation(fields: [teamId], references: [id])
+  teamId        String
+  label         String
+  quarter       String
+  startDate     DateTime
+  endDate       DateTime
+  status        String          @default("planned")
+  sprintGoal    String?
+  capacityDays  Float?
+  pctBau        Float           @default(0.30)
+  teamMood      Int?
+  items         SprintItem[]
+  burndown      BurndownEntry[]
+  absences      Absence[]
+}
+
+model SprintItem {
+  id           String   @id @default(cuid())
+  sprint       Sprint   @relation(fields: [sprintId], references: [id])
+  sprintId     String
+  jiraKey      String?
+  title        String
+  type         String
+  scope        String
+  storyPoints  Int?
+  status       String   @default("todo")
+  isAdded      Boolean  @default(false)
+  isRemoved    Boolean  @default(false)
+  addedDay     Int?
+  createdAt    DateTime @default(now())
+}
+
+model BurndownEntry {
+  id          String   @id @default(cuid())
+  sprint      Sprint   @relation(fields: [sprintId], references: [id])
+  sprintId    String
+  dayNumber   Int
+  date        DateTime
+  remainingSp Int?
+  doneSp      Int?
+  addedSp     Int      @default(0)
+  removedSp   Int      @default(0)
+  scopeTotal  Int?
+}
+
+model Absence {
+  id         String   @id @default(cuid())
+  member     Member   @relation(fields: [memberId], references: [id])
+  memberId   String
+  sprint     Sprint   @relation(fields: [sprintId], references: [id])
+  sprintId   String
+  type       String
+  daysCount  Float
+}// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Team {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  trigram     String
+  color       String   @default("#2E75B6")
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  members     Member[]
+  sprints     Sprint[]
+}
+
+model Member {
+  id                String    @id @default(cuid())
+  team              Team      @relation(fields: [teamId], references: [id])
+  teamId            String
+  firstName         String
+  lastName          String
+  role              String
+  fte               Float     @default(1.0)
+  countsInCapacity  Boolean   @default(true)
+  status            String    @default("active")
+  activeFrom        DateTime  @default(now())
+  activeTo          DateTime?
+  absences          Absence[]
+}
+
+model Sprint {
+  id            String          @id @default(cuid())
+  team          Team            @relation(fields: [teamId], references: [id])
+  teamId        String
+  label         String
+  quarter       String
+  startDate     DateTime
+  endDate       DateTime
+  status        String          @default("planned")
+  sprintGoal    String?
+  capacityDays  Float?
+  pctBau        Float           @default(0.30)
+  teamMood      Int?
+  items         SprintItem[]
+  burndown      BurndownEntry[]
+  absences      Absence[]
+}
+
+model SprintItem {
+  id           String   @id @default(cuid())
+  sprint       Sprint   @relation(fields: [sprintId], references: [id])
+  sprintId     String
+  jiraKey      String?
+  title        String
+  type         String
+  scope        String
+  storyPoints  Int?
+  status       String   @default("todo")
+  isAdded      Boolean  @default(false)
+  isRemoved    Boolean  @default(false)
+  addedDay     Int?
+  createdAt    DateTime @default(now())
+}
+
+model BurndownEntry {
+  id          String   @id @default(cuid())
+  sprint      Sprint   @relation(fields: [sprintId], references: [id])
+  sprintId    String
+  dayNumber   Int
+  date        DateTime
+  remainingSp Int?
+  doneSp      Int?
+  addedSp     Int      @default(0)
+  removedSp   Int      @default(0)
+  scopeTotal  Int?
+}
+
+model Absence {
+  id         String   @id @default(cuid())
+  member     Member   @relation(fields: [memberId], references: [id])
+  memberId   String
+  sprint     Sprint   @relation(fields: [sprintId], references: [id])
+  sprintId   String
+  type       String
+  daysCount  Float
+}
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Team {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  trigram     String
+  color       String   @default("#2E75B6")
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  members     Member[]
+  sprints     Sprint[]
+}
+
+model Member {
+  id                String    @id @default(cuid())
+  team              Team      @relation(fields: [teamId], references: [id])
+  teamId            String
+  firstName         String
+  lastName          String
+  role              String
+  fte               Float     @default(1.0)
+  countsInCapacity  Boolean   @default(true)
+  status            String    @default("active")
+  activeFrom        DateTime  @default(now())
+  activeTo          DateTime?
+  absences          Absence[]
+}
+
+model Sprint {
+  id            String          @id @default(cuid())
+  team          Team            @relation(fields: [teamId], references: [id])
+  teamId        String
+  label         String
+  quarter       String
+  startDate     DateTime
+  endDate       DateTime
+  status        String          @default("planned")
+  sprintGoal    String?
+  capacityDays  Float?
+  pctBau        Float           @default(0.30)
+  teamMood      Int?
+  items         SprintItem[]
+  burndown      BurndownEntry[]
+  absences      Absence[]
+}
+
+model SprintItem {
+  id           String   @id @default(cuid())
+  sprint       Sprint   @relation(fields: [sprintId], references: [id])
+  sprintId     String
+  jiraKey      String?
+  title        String
+  type         String
+  scope        String
+  storyPoints  Int?
+  status       String   @default("todo")
+  isAdded      Boolean  @default(false)
+  isRemoved    Boolean  @default(false)
+  addedDay     Int?
+  createdAt    DateTime @default(now())
+}
+
+model BurndownEntry {
+  id          String   @id @default(cuid())
+  sprint      Sprint   @relation(fields: [sprintId], references: [id])
+  sprintId    String
+  dayNumber   Int
+  date        DateTime
+  remainingSp Int?
+  doneSp      Int?
+  addedSp     Int      @default(0)
+  removedSp   Int      @default(0)
+  scopeTotal  Int?
+}
+
+model Absence {
+  id         String   @id @default(cuid())
+  member     Member   @relation(fields: [memberId], references: [id])
+  memberId   String
+  sprint     Sprint   @relation(fields: [sprintId], references: [id])
+  sprintId   String
+  type       String
+  daysCount  Float
+}
