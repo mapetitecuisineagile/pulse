@@ -1,3 +1,5 @@
+"use client"
+
 export default function MainLayout({
   children,
 }: {
@@ -17,10 +19,13 @@ export default function MainLayout({
           <a href="/predictibilite" className="nav-link">Prédictibilité</a>
           <a href="/settings" className="nav-link">Settings</a>
         </div>
-        <div className="team-pill">
-          <div className="pulse-dot"></div>
-          E.T 👽
-        </div>
+        <button
+          onClick={() => {
+            fetch('/api/auth/signout', {method:'POST'}).then(() => window.location.href = '/login')
+          }}
+          style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'1px',textTransform:'uppercase',color:'var(--muted)',background:'transparent',border:'1px solid var(--border)',borderRadius:'5px',padding:'5px 10px',cursor:'pointer'}}>
+          Déconnexion
+        </button>
       </nav>
       {children}
     </>

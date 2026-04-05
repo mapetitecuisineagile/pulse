@@ -51,6 +51,10 @@ export default function SprintDetail({ params }: { params: any }) {
   const [loading, setLoading] = useState(true)
   const [saisie, setSaisie] = useState('')
   const [showItemForm, setShowItemForm] = useState(false)
+  const [editingItem, setEditingItem] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState({
+    title: '', type: 'US', scope: 'committed', storyPoints: ''
+  })
   const [itemForm, setItemForm] = useState({
     title: '', jiraKey: '', type: 'US', scope: 'committed', storyPoints: ''
   })
@@ -65,14 +69,10 @@ export default function SprintDetail({ params }: { params: any }) {
     if (!sprint || !saisie) return
     const val = parseInt(saisie)
     if (isNaN(val)) return
-
     const jourCourant = sprint.burndown.length
     const today = new Date().toISOString().split('T')[0]
-
-    // Scope total = somme des SP des items, ou repris du jour précédent
     const scopeTotal = sprint.items.reduce((acc, item) => acc + (item.storyPoints || 0), 0) ||
       (sprint.burndown.length > 0 ? sprint.burndown[sprint.burndown.length-1].scopeTotal : val)
-
     const res = await fetch(`/api/sprints/${id}/burndown`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -106,6 +106,24 @@ export default function SprintDetail({ params }: { params: any }) {
       setSprint({ ...sprint, items: [...sprint.items, item] })
       setShowItemForm(false)
       setItemForm({ title: '', jiraKey: '', type: 'US', scope: 'committed', storyPoints: '' })
+    }
+  }
+
+  async function saveEditItem(itemId: string) {
+    const res = await fetch(`/api/items/${itemId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: editForm.title,
+        type: editForm.type,
+        scope: editForm.scope,
+        storyPoints: editForm.storyPoints ? parseInt(editForm.storyPoints) : null,
+      }),
+    })
+    if (res.ok) {
+      const updated = await res.json()
+      setSprint({...sprint!, items: sprint!.items.map(i => i.id === itemId ? {...i, ...updated} : i)})
+      setEditingItem(null)
     }
   }
 
@@ -187,13 +205,11 @@ export default function SprintDetail({ params }: { params: any }) {
             </div>
           </div>
           <div className="card-body">
-
             {scopeTotalItems === 0 && sprint.burndown.length === 0 && (
               <div style={{padding:'16px',background:'var(--yellow-dim)',border:'1px solid var(--yellow-border)',borderRadius:'8px',fontFamily:'DM Mono',fontSize:'10px',color:'var(--yellow)',marginBottom:'12px'}}>
                 ⚠️ Ajoutez des items avec des SP pour initialiser le scope du burndown
               </div>
             )}
-
             <svg viewBox={`0 0 ${w} ${h}`} style={{width:'100%',height:'160px'}}>
               {[0,Math.round(maxSP*0.25),Math.round(maxSP*0.5),Math.round(maxSP*0.75),maxSP].map(v=>(
                 <g key={v}>
@@ -213,7 +229,6 @@ export default function SprintDetail({ params }: { params: any }) {
                 <circle cx={xPos(jourCourant-1)} cy={yPos(sprint.burndown[jourCourant-1].remainingSp || 0)} r="4" fill="var(--cyan)" stroke="var(--bg)" strokeWidth="2"/>
               )}
             </svg>
-
             <div style={{display:'flex',alignItems:'center',gap:'12px',marginTop:'16px',padding:'14px',background:'var(--bg)',border:'1px solid var(--border)',borderRadius:'8px'}}>
               <div className="label" style={{whiteSpace:'nowrap'}}>Saisir J{jourCourant} — SP restants</div>
               <input type="number" placeholder="SP restants..."
@@ -281,8 +296,7 @@ export default function SprintDetail({ params }: { params: any }) {
                     onChange={e=>setItemForm({...itemForm, storyPoints: e.target.value})}/>
                 </div>
               </div>
-              <button className="btn btn-primary" onClick={addItem}
-                disabled={!itemForm.title}>
+              <button className="btn btn-primary" onClick={addItem} disabled={!itemForm.title}>
                 Ajouter l'item →
               </button>
             </div>
@@ -292,75 +306,112 @@ export default function SprintDetail({ params }: { params: any }) {
             <table className="data-table">
               <thead>
                 <tr>
-              <th>Clé</th><th>Titre</th><th>Type</th><th>Scope</th><th>SP</th><th>Statut</th><th>Action</th>
+                  <th>Clé</th><th>Titre</th><th>Type</th><th>Scope</th><th>SP</th><th>Statut</th><th>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {sprint.items.length === 0 && (
-                  <tr><td colSpan={6} style={{textAlign:'center',padding:'24px',fontFamily:'DM Mono',fontSize:'10px',color:'var(--muted)'}}>
+                  <tr><td colSpan={7} style={{textAlign:'center',padding:'24px',fontFamily:'DM Mono',fontSize:'10px',color:'var(--muted)'}}>
                     Aucun item — ajoutez le premier item
                   </td></tr>
                 )}
                 {sprint.items.map(item => (
-                  <tr key={item.id}>
-                    <td><span style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--muted)'}}>{item.jiraKey || '—'}</span></td>
-                    <td style={{color:'var(--text)',maxWidth:'280px'}}>{item.title}</td>
-                    <td><span className="badge" style={{color:typeColor[item.type],background:`${typeColor[item.type]}15`,borderColor:`${typeColor[item.type]}40`,borderRadius:'4px'}}>{item.type}</span></td>
-                    <td><span style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--muted)'}}>{scopeLabel[item.scope] || item.scope}</span></td>
-                    <td className="num">{item.storyPoints || '—'}</td>
-                    <td>
-  <select
-    value={item.status}
-    onChange={async e => {
-      const res = await fetch(`/api/items/${item.id}`, {
-        method: 'PUT',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({status: e.target.value}),
-      })
-      if (res.ok) {
-        setSprint({...sprint!, items: sprint!.items.map(i =>
-          i.id === item.id ? {...i, status: e.target.value} : i
-        )})
-      }
-    }}
-    style={{
-      background:'var(--surface)',
-      border:'1px solid var(--border)',
-      borderRadius:'4px',
-      padding:'3px 8px',
-      fontFamily:'DM Mono',
-      fontSize:'9px',
-      color:statusColor[item.status],
-      cursor:'pointer',
-    }}>
-    <option value="todo">À faire</option>
-    <option value="in_progress">En cours</option>
-    <option value="done">Done</option>
-  </select>
-</td>
-<td>
-  <button
-    onClick={async () => {
-      if (!confirm('Supprimer cet item ?')) return
-      const res = await fetch(`/api/items/${item.id}`, { method: 'DELETE' })
-      if (res.ok) {
-        setSprint({...sprint!, items: sprint!.items.filter(i => i.id !== item.id)})
-      }
-    }}
-    style={{
-      background:'var(--red-dim)',
-      border:'1px solid var(--red-border)',
-      borderRadius:'4px',
-      padding:'3px 8px',
-      fontFamily:'DM Mono',
-      fontSize:'9px',
-      color:'var(--red)',
-      cursor:'pointer',
-    }}>
-    ✕
-  </button>
-</td>
-                  </tr>
+                  editingItem === item.id ? (
+                    <tr key={item.id} style={{background:'var(--surface-2)'}}>
+                      <td><span style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--muted)'}}>{item.jiraKey || '—'}</span></td>
+                      <td>
+                        <input className="input" value={editForm.title}
+                          onChange={e=>setEditForm({...editForm, title: e.target.value})}
+                          style={{padding:'4px 8px',fontSize:'10px'}}/>
+                      </td>
+                      <td>
+                        <select className="input" value={editForm.type}
+                          onChange={e=>setEditForm({...editForm, type: e.target.value})}
+                          style={{padding:'4px 8px',fontSize:'10px'}}>
+                          <option value="US">US</option>
+                          <option value="UST">UST</option>
+                          <option value="BUG">BUG</option>
+                          <option value="ACTION">ACTION</option>
+                          <option value="ETUDE">ETUDE</option>
+                        </select>
+                      </td>
+                      <td>
+                        <select className="input" value={editForm.scope}
+                          onChange={e=>setEditForm({...editForm, scope: e.target.value})}
+                          style={{padding:'4px 8px',fontSize:'10px'}}>
+                          <option value="committed">Engagé</option>
+                          <option value="bau">BAU</option>
+                          <option value="best_effort">Best Effort</option>
+                          <option value="respiration">Respiration</option>
+                        </select>
+                      </td>
+                      <td>
+                        <input type="number" className="input" value={editForm.storyPoints}
+                          onChange={e=>setEditForm({...editForm, storyPoints: e.target.value})}
+                          style={{padding:'4px 8px',fontSize:'10px',maxWidth:'60px'}}/>
+                      </td>
+                      <td>
+                        <span style={{fontFamily:'DM Mono',fontSize:'9px',color:statusColor[item.status]}}>{statusLabel[item.status]}</span>
+                      </td>
+                      <td>
+                        <div style={{display:'flex',gap:'6px'}}>
+                          <button onClick={() => saveEditItem(item.id)}
+                            style={{background:'var(--green-dim)',border:'1px solid var(--green-border)',borderRadius:'4px',padding:'3px 8px',fontFamily:'DM Mono',fontSize:'9px',color:'var(--green)',cursor:'pointer'}}>
+                            ✓
+                          </button>
+                          <button onClick={() => setEditingItem(null)}
+                            style={{background:'var(--red-dim)',border:'1px solid var(--red-border)',borderRadius:'4px',padding:'3px 8px',fontFamily:'DM Mono',fontSize:'9px',color:'var(--red)',cursor:'pointer'}}>
+                            ✕
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    <tr key={item.id}>
+                      <td><span style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--muted)'}}>{item.jiraKey || '—'}</span></td>
+                      <td style={{color:'var(--text)',maxWidth:'280px'}}>{item.title}</td>
+                      <td><span className="badge" style={{color:typeColor[item.type],background:`${typeColor[item.type]}15`,borderColor:`${typeColor[item.type]}40`,borderRadius:'4px'}}>{item.type}</span></td>
+                      <td><span style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--muted)'}}>{scopeLabel[item.scope] || item.scope}</span></td>
+                      <td className="num">{item.storyPoints || '—'}</td>
+                      <td>
+                        <select value={item.status}
+                          onChange={async e => {
+                            const res = await fetch(`/api/items/${item.id}`, {
+                              method: 'PUT',
+                              headers: {'Content-Type':'application/json'},
+                              body: JSON.stringify({status: e.target.value}),
+                            })
+                            if (res.ok) {
+                              setSprint({...sprint!, items: sprint!.items.map(i =>
+                                i.id === item.id ? {...i, status: e.target.value} : i
+                              )})
+                            }
+                          }}
+                          style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:'4px',padding:'3px 8px',fontFamily:'DM Mono',fontSize:'9px',color:statusColor[item.status],cursor:'pointer'}}>
+                          <option value="todo">À faire</option>
+                          <option value="in_progress">En cours</option>
+                          <option value="done">Done</option>
+                        </select>
+                      </td>
+                      <td>
+                        <div style={{display:'flex',gap:'6px'}}>
+                          <button onClick={() => {
+                            setEditingItem(item.id)
+                            setEditForm({title: item.title, type: item.type, scope: item.scope, storyPoints: item.storyPoints?.toString() || ''})
+                          }} style={{background:'var(--cyan-dim)',border:'1px solid var(--cyan-border)',borderRadius:'4px',padding:'3px 8px',fontFamily:'DM Mono',fontSize:'9px',color:'var(--cyan)',cursor:'pointer'}}>
+                            ✏️
+                          </button>
+                          <button onClick={async () => {
+                            if (!confirm('Supprimer cet item ?')) return
+                            const res = await fetch(`/api/items/${item.id}`, { method: 'DELETE' })
+                            if (res.ok) setSprint({...sprint!, items: sprint!.items.filter(i => i.id !== item.id)})
+                          }} style={{background:'var(--red-dim)',border:'1px solid var(--red-border)',borderRadius:'4px',padding:'3px 8px',fontFamily:'DM Mono',fontSize:'9px',color:'var(--red)',cursor:'pointer'}}>
+                            ✕
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
                 ))}
               </tbody>
             </table>

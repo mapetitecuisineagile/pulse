@@ -32,6 +32,10 @@ export default function EquipeDetail({ params }: { params: any }) {
   const [team, setTeam] = useState<Team | null>(null)
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const [editingMember, setEditingMember] = useState<string | null>(null)
+  const [editMemberForm, setEditMemberForm] = useState({
+    firstName: '', lastName: '', role: 'Dev', fte: 1.0, countsInCapacity: true
+  })
   const [form, setForm] = useState({
     firstName: '', lastName: '', role: 'Dev', fte: 1.0, countsInCapacity: true
   })
@@ -61,6 +65,27 @@ export default function EquipeDetail({ params }: { params: any }) {
     }
   }
 
+  async function saveMember(memberId: string) {
+    const res = await fetch(`/api/members/${memberId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(editMemberForm),
+    })
+    if (res.ok) {
+      const updated = await res.json()
+      setTeam({...team!, members: team!.members.map(m => m.id === memberId ? {...m, ...updated} : m)})
+      setEditingMember(null)
+    }
+  }
+
+  async function deactivateMember(memberId: string, name: string) {
+    if (!confirm(`Désactiver ${name} ?`)) return
+    const res = await fetch(`/api/members/${memberId}`, { method: 'DELETE' })
+    if (res.ok) {
+      setTeam({...team!, members: team!.members.map(m => m.id === memberId ? {...m, status: 'inactive'} : m)})
+    }
+  }
+
   if (loading) return (
     <main><div style={{padding:'60px',textAlign:'center',fontFamily:'DM Mono',fontSize:'10px',color:'var(--muted)',letterSpacing:'2px'}}>CHARGEMENT...</div></main>
   )
@@ -82,7 +107,7 @@ export default function EquipeDetail({ params }: { params: any }) {
       <div className="page-content">
 
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'24px'}}>
-          <div className="label">{team.members.length} membre{team.members.length > 1 ? 's' : ''} — {totalFte} FTE en capacité</div>
+          <div className="label">{team.members.filter(m=>m.status==='active').length} membre{team.members.length > 1 ? 's' : ''} actif{team.members.length > 1 ? 's' : ''} — {totalFte} FTE en capacité</div>
           <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
             {showForm ? '✕ Annuler' : '+ Ajouter un membre'}
           </button>
@@ -153,29 +178,102 @@ export default function EquipeDetail({ params }: { params: any }) {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Nom</th>
-                  <th>Rôle</th>
-                  <th>FTE</th>
-                  <th>Capacité</th>
-                  <th>Statut</th>
+                  <th>Nom</th><th>Rôle</th><th>FTE</th><th>Capacité</th><th>Statut</th><th>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {team.members.length === 0 && (
-                  <tr><td colSpan={5} style={{textAlign:'center',padding:'24px',fontFamily:'DM Mono',fontSize:'10px',color:'var(--muted)'}}>Aucun membre — ajoutez le premier membre</td></tr>
+                  <tr><td colSpan={6} style={{textAlign:'center',padding:'24px',fontFamily:'DM Mono',fontSize:'10px',color:'var(--muted)'}}>Aucun membre</td></tr>
                 )}
                 {team.members.map(m => (
-                  <tr key={m.id}>
-                    <td style={{color:'var(--text)',fontWeight:500}}>{m.firstName} {m.lastName}</td>
-                    <td><span className="badge" style={{color:'var(--cyan)',background:'var(--cyan-dim)',borderColor:'var(--cyan-border)',borderRadius:'4px'}}>{m.role}</span></td>
-                    <td className="num">{m.fte}</td>
-                    <td>
-                      {m.countsInCapacity
-                        ? <span style={{color:'var(--green)',fontFamily:'DM Mono',fontSize:'10px'}}>✓ Capa</span>
-                        : <span style={{color:'var(--muted)',fontFamily:'DM Mono',fontSize:'10px'}}>— Hors capa</span>}
-                    </td>
-                    <td><span className="badge green">Actif</span></td>
-                  </tr>
+                  editingMember === m.id ? (
+                    <tr key={m.id} style={{background:'var(--surface-2)'}}>
+                      <td>
+                        <div style={{display:'flex',gap:'6px'}}>
+                          <input className="input" value={editMemberForm.firstName}
+                            onChange={e => setEditMemberForm({...editMemberForm, firstName: e.target.value})}
+                            style={{padding:'4px 8px',fontSize:'10px',width:'80px'}}/>
+                          <input className="input" value={editMemberForm.lastName}
+                            onChange={e => setEditMemberForm({...editMemberForm, lastName: e.target.value})}
+                            style={{padding:'4px 8px',fontSize:'10px',width:'80px'}}/>
+                        </div>
+                      </td>
+                      <td>
+                        <select className="input" value={editMemberForm.role}
+                          onChange={e => setEditMemberForm({...editMemberForm, role: e.target.value})}
+                          style={{padding:'4px 8px',fontSize:'10px'}}>
+                          <option>Dev</option>
+                          <option>Lead</option>
+                          <option>QA</option>
+                          <option>PO</option>
+                          <option>Architecte</option>
+                          <option>DevOps</option>
+                        </select>
+                      </td>
+                      <td>
+                        <select className="input" value={editMemberForm.fte}
+                          onChange={e => setEditMemberForm({...editMemberForm, fte: parseFloat(e.target.value)})}
+                          style={{padding:'4px 8px',fontSize:'10px'}}>
+                          <option value={0.25}>0.25</option>
+                          <option value={0.5}>0.5</option>
+                          <option value={0.75}>0.75</option>
+                          <option value={1.0}>1.0</option>
+                        </select>
+                      </td>
+                      <td>
+                        <input type="checkbox" checked={editMemberForm.countsInCapacity}
+                          onChange={e => setEditMemberForm({...editMemberForm, countsInCapacity: e.target.checked})}
+                          style={{width:'16px',height:'16px',accentColor:'var(--cyan)'}}/>
+                      </td>
+                      <td><span className="badge green">Actif</span></td>
+                      <td>
+                        <div style={{display:'flex',gap:'6px'}}>
+                          <button onClick={() => saveMember(m.id)}
+                            style={{background:'var(--green-dim)',border:'1px solid var(--green-border)',borderRadius:'4px',padding:'3px 8px',fontFamily:'DM Mono',fontSize:'9px',color:'var(--green)',cursor:'pointer'}}>
+                            ✓
+                          </button>
+                          <button onClick={() => setEditingMember(null)}
+                            style={{background:'var(--red-dim)',border:'1px solid var(--red-border)',borderRadius:'4px',padding:'3px 8px',fontFamily:'DM Mono',fontSize:'9px',color:'var(--red)',cursor:'pointer'}}>
+                            ✕
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    <tr key={m.id} style={{opacity: m.status === 'inactive' ? 0.4 : 1}}>
+                      <td style={{color:'var(--text)',fontWeight:500}}>{m.firstName} {m.lastName}</td>
+                      <td><span className="badge" style={{color:'var(--cyan)',background:'var(--cyan-dim)',borderColor:'var(--cyan-border)',borderRadius:'4px'}}>{m.role}</span></td>
+                      <td className="num">{m.fte}</td>
+                      <td>
+                        {m.countsInCapacity
+                          ? <span style={{color:'var(--green)',fontFamily:'DM Mono',fontSize:'10px'}}>✓ Capa</span>
+                          : <span style={{color:'var(--muted)',fontFamily:'DM Mono',fontSize:'10px'}}>— Hors capa</span>}
+                      </td>
+                      <td>
+                        {m.status === 'active'
+                          ? <span className="badge green">Actif</span>
+                          : <span className="badge muted">Inactif</span>}
+                      </td>
+                      <td>
+                        <div style={{display:'flex',gap:'6px'}}>
+                          {m.status === 'active' && (
+                            <>
+                              <button onClick={() => {
+                                setEditingMember(m.id)
+                                setEditMemberForm({firstName: m.firstName, lastName: m.lastName, role: m.role, fte: m.fte, countsInCapacity: m.countsInCapacity})
+                              }} style={{background:'var(--cyan-dim)',border:'1px solid var(--cyan-border)',borderRadius:'4px',padding:'3px 8px',fontFamily:'DM Mono',fontSize:'9px',color:'var(--cyan)',cursor:'pointer'}}>
+                                ✏️
+                              </button>
+                              <button onClick={() => deactivateMember(m.id, `${m.firstName} ${m.lastName}`)}
+                                style={{background:'var(--red-dim)',border:'1px solid var(--red-border)',borderRadius:'4px',padding:'3px 8px',fontFamily:'DM Mono',fontSize:'9px',color:'var(--red)',cursor:'pointer'}}>
+                                ✕
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )
                 ))}
               </tbody>
             </table>
