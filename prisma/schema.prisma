@@ -7,18 +7,39 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Team {
+
+model Tribe {
   id          String   @id @default(cuid())
   name        String
   slug        String   @unique
-  trigram     String
-  color       String   @default("#2E75B6")
+  color       String   @default("#7b61ff")
   description String?
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
-  members     Member[]
-  sprints     Sprint[]
+  teams       Team[]
 }
+
+model Team {
+  id                  String   @id @default(cuid())
+  name                String
+  slug                String   @unique
+  trigram             String
+  color               String   @default("#2E75B6")
+  description         String?
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  tribe               Tribe?   @relation(fields: [tribeId], references: [id])
+  tribeId             String?
+  sprintDurationWeeks Int      @default(3)
+  pctBau              Float    @default(0.30)
+  pctRisk             Float    @default(0.10)
+  pctCerem            Float    @default(0)
+  pctOther            Float    @default(0)
+  predMode            String   @default("sp")
+  members             Member[]
+  sprints             Sprint[]
+}
+
 
 model Member {
   id                String    @id @default(cuid())
@@ -47,7 +68,11 @@ model Sprint {
   sprintGoal    String?
   capacityDays  Float?
   pctBau        Float           @default(0.30)
+  pctRisk       Float           @default(0.10)
+  pctCerem      Float           @default(0)
+  pctOther      Float           @default(0)
   teamMood      Int?
+  durationWeeks       Int?     @default(3)
   items         SprintItem[]
   burndown      BurndownEntry[]
   absences      Absence[]

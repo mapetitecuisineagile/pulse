@@ -1,0 +1,27 @@
+-- AlterTable
+ALTER TABLE "Team" ADD COLUMN     "pctBau" DOUBLE PRECISION NOT NULL DEFAULT 0.30,
+ADD COLUMN     "pctCerem" DOUBLE PRECISION NOT NULL DEFAULT 0,
+ADD COLUMN     "pctOther" DOUBLE PRECISION NOT NULL DEFAULT 0,
+ADD COLUMN     "pctRisk" DOUBLE PRECISION NOT NULL DEFAULT 0.10,
+ADD COLUMN     "predMode" TEXT NOT NULL DEFAULT 'sp',
+ADD COLUMN     "sprintDurationWeeks" INTEGER NOT NULL DEFAULT 3,
+ADD COLUMN     "tribeId" TEXT;
+
+-- CreateTable
+CREATE TABLE "Tribe" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "slug" TEXT NOT NULL,
+    "color" TEXT NOT NULL DEFAULT '#7b61ff',
+    "description" TEXT,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Tribe_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Tribe_slug_key" ON "Tribe"("slug");
+
+-- AddForeignKey
+ALTER TABLE "Team" ADD CONSTRAINT "Team_tribeId_fkey" FOREIGN KEY ("tribeId") REFERENCES "Tribe"("id") ON DELETE SET NULL ON UPDATE CASCADE;
