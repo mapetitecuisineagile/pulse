@@ -61,6 +61,15 @@ export default function Sprints() {
     if (res.ok) setSprints(sprints.filter(s => s.id !== id))
   }
 
+  async function changeStatus(id: string, status: string) {
+    const res = await fetch(`/api/sprints/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
+    })
+    if (res.ok) setSprints(sprints.map(s => s.id === id ? {...s, status} : s))
+  }
+
   const statusColor: Record<string, string> = {
     planned: 'var(--muted)', active: 'var(--cyan)', done: 'var(--green)',
   }
@@ -193,6 +202,20 @@ export default function Sprints() {
                     </div>
                   </div>
                   <div style={{display:'flex',gap:'8px'}}>
+                    {sprint.status === 'planned' && (
+                      <button
+                        onClick={() => changeStatus(sprint.id, 'active')}
+                        style={{background:'var(--cyan-dim)',border:'1px solid var(--cyan-border)',borderRadius:'7px',padding:'10px 14px',fontFamily:'DM Mono',fontSize:'10px',color:'var(--cyan)',cursor:'pointer'}}>
+                        ▶ Démarrer
+                      </button>
+                    )}
+                    {sprint.status === 'active' && (
+                      <button
+                        onClick={() => changeStatus(sprint.id, 'done')}
+                        style={{background:'var(--green-dim)',border:'1px solid var(--green-border)',borderRadius:'7px',padding:'10px 14px',fontFamily:'DM Mono',fontSize:'10px',color:'var(--green)',cursor:'pointer'}}>
+                        ✓ Terminer
+                      </button>
+                    )}
                     <a href={`/sprints/${sprint.id}`} className="btn btn-primary" style={{flex:1,justifyContent:'center'}}>
                       Voir le burndown →
                     </a>

@@ -45,3 +45,21 @@ export async function PUT(
     return NextResponse.json({ error: 'Erreur mise à jour' }, { status: 500 })
   }
 }
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: any }
+) {
+  const { slug } = await params
+  try {
+    const team = await prisma.team.findUnique({ where: { slug } })
+    if (!team) return NextResponse.json({ error: 'Équipe introuvable' }, { status: 404 })
+    await prisma.team.update({
+      where: { slug },
+      data: { isActive: false }
+    })
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    return NextResponse.json({ error: 'Erreur suppression' }, { status: 500 })
+  }
+}

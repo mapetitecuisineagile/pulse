@@ -139,9 +139,24 @@ export default function Equipes() {
                     <div style={{fontFamily:'Space Mono',fontSize:'20px',color:'var(--yellow)'}}>{Math.round(team.pctBau*100)}%</div>
                   </div>
                 </div>
-                <a href={`/equipes/${team.slug}`} className="btn btn-primary" style={{width:'100%',justifyContent:'center',display:'flex'}}>
-                  Voir l'équipe →
-                </a>
+                
+
+<div style={{display:'flex',gap:'8px'}}>
+  <a href={`/equipes/${team.slug}`} className="btn btn-primary" style={{flex:1,justifyContent:'center'}}>
+    Voir l'équipe →
+  </a>
+  <button
+    onClick={async () => {
+      if (!confirm(`Archiver l'équipe ${team.name} ?`)) return
+      const res = await fetch(`/api/teams/${team.slug}`, { method: 'DELETE' })
+      if (res.ok) setTeams(teams.filter(t => t.slug !== team.slug))
+    }}
+    style={{background:'var(--red-dim)',border:'1px solid var(--red-border)',borderRadius:'7px',padding:'10px 14px',fontFamily:'DM Mono',fontSize:'10px',color:'var(--red)',cursor:'pointer'}}>
+    ✕
+  </button>
+</div>
+
+
               </div>
             </div>
           ))}
